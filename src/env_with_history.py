@@ -27,7 +27,7 @@ class EnvWithHistoryWrapper(Env):
         self.history[self.history_iter] = obs
         self.history_iter = (self.history_iter + 1) % len(self.history)
 
-        return obs_with_history
+        return obs_with_history, reward, done, info 
 
     def reset(self):
         obs = self.wrapped.reset()
