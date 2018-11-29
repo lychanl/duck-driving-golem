@@ -2,6 +2,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import random
 
 class CNN(nn.Model):
     def __init__(self):
@@ -56,11 +57,32 @@ class CNN(nn.Model):
 
         x = self.dropout(x)
 
+        x = x.view(x.size(0), -1)  # flatten
+
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.fc3(x)
 
         return x
 
+
+Transition = namedtuple('Transition',
+                        ('state','action','next_state','reward'))    
+
+class ReplayMaemory(object):
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.memory = []
+        self.position = 0
+    
+    def push(self, *args):
+        if len(self.memory) < self.capacity:
+            self.memory.append(None)
+        self.memory[self.position] = Transition(*args)
+        self.position = (self.position + 1) % self.capacity
         
-        
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+
+    def __len__(self):
+        return len(self.memory)
