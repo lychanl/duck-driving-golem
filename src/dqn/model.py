@@ -3,10 +3,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 import random
+from collections import namedtuple
 
-class CNN(nn.Model):
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+class DQN(nn.Module):
     def __init__(self):
-        super(CNN, self).__init__()
+        super(DQN, self).__init__()
 
         self.relu = nn.LeakyReLU()
         self.dropout=nn.Dropout(0.25)
@@ -43,7 +46,7 @@ class CNN(nn.Model):
         self.fc2 = nn.Linear(1024, 32)
         
         #third fully connected
-        self.fc3=nn.Linear(32,4)
+        self.fc3=nn.Linear(32,2)
         
     def forward(self, x):
 
@@ -64,12 +67,17 @@ class CNN(nn.Model):
         x = self.fc3(x)
 
         return x
+    
+    def save(self, filename, directory):
+        torch.save(self.state_dict(), '{}/{}_dqn.pth'.format(directory, filename))
+
+    def load(self, filename, directory):
+        self.load_state_dict(torch.load('{}/{}_dqn.pth'.format(directory, filename), map_location=device))
 
 
-Transition = namedtuple('Transition',
-                        ('state','action','next_state','reward'))    
+Transition = namedtuple('Transition','state, action, next_state, reward')    
 
-class ReplayMaemory(object):
+class ReplayMemory(object):
     def __init__(self, capacity):
         self.capacity = capacity
         self.memory = []
