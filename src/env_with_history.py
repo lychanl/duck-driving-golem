@@ -27,12 +27,12 @@ class EnvWithHistoryWrapper(Env):
         self.history[self.history_iter] = obs
         self.history_iter = (self.history_iter + 1) % len(self.history)
 
-        return obs_with_history
+        return obs_with_history, reward, done, info
 
     def reset(self):
         obs = self.wrapped.reset()
 
-        for i in range(self.history_iter):
+        for i in range(len(self.history)):
             self.history[i] = obs
 
         return np.concatenate((obs, obs), axis=2)
