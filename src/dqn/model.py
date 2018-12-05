@@ -5,39 +5,44 @@ import torch.nn as nn
 import random
 from collections import namedtuple
 
+import functools
+import operator
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DQN(nn.Module):
-    def __init__(self):
+    def __init__(self,state_dim):
         super(DQN, self).__init__()
 
+        #state_dim = functools.reduce(operator.mul, state_dim, 1)
+
         self.relu = nn.LeakyReLU()
-        self.dropout=nn.Dropout(0.25)
+        self.dropout=nn.Dropout(0.5)
         
         #input channels = 6, output = 48, sizeOut 160x120
-        self.conv1 = nn.Conv3d(6, 48, kernel_size=4, stride=1, padding=1)
-        self.bnorm1=nn.BatchNorm3d(48)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=48, kernel_size=4, stride=1, padding=1)
+        self.bnorm1=nn.BatchNorm2d(48)
         
         #input channels = 48, output = 96, sizeOut 156x116
-        self.conv2 = nn.Conv3d(48, 96, kernel_size=6, stride=1, padding=0)
-        self.bnorm2 = nn.BatchNorm3d(96)
+        self.conv2 = nn.Conv2d(48, 96, kernel_size=6, stride=1, padding=0)
+        self.bnorm2 = nn.BatchNorm2d(96)
 
         #input channels = 96, output = 96, sizeOut 78x58
-        self.pool1 = nn.MaxPool3d(kernel_size=2, stride=2, padding=0)
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
         #input cahnnels = 96, output =96, sizeOut 74x54
-        self.conv3 = nn.Conv3d(96, 96, kernel_size=6, stride=1, padding=0)
-        self.bnorm3 = nn.BatchNorm3d(96)
+        self.conv3 = nn.Conv2d(96, 96, kernel_size=6, stride=1, padding=0)
+        self.bnorm3 = nn.BatchNorm2d(96)
         
         #input channels = 96, output = 96, sizeOut 37x27
-        self.pool2 = nn.MaxPool3d(kernel_size=2, stride=2, padding=0)
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
         #input channels = 96, output = 96, sizeout 33x23
-        self.conv4 = nn.Conv3d(96, 96, kernel_size=5, stride=1, padding=0)
-        self.bnorm4 = nn.BatchNorm3d(96)
+        self.conv4 = nn.Conv2d(96, 96, kernel_size=5, stride=1, padding=0)
+        self.bnorm4 = nn.BatchNorm2d(96)
         
         #input channels = 96, output = 96, sizeOut 16x11
-        self.pool3=nn.MaxPool3d(kernel_size=2, stride =2, padding=0)
+        self.pool3=nn.MaxPool2d(kernel_size=2, stride =2, padding=0)
         
         #first fully connected
         self.fc1 = nn.Linear(16896, 1024)
@@ -50,7 +55,10 @@ class DQN(nn.Module):
         
     def forward(self, x):
 
-        x = self.bnorm1(self.relu(self.conv1(x)))
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.bnorm1(x)
+               
         x = self.bnorm2(self.relu(self.conv2(x)))
         x = self.relu(self.pool1(x))
         x = self.bnorm3(self.relu(self.conv3(x)))

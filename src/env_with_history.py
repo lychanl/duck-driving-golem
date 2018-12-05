@@ -14,7 +14,7 @@ class EnvWithHistoryWrapper(Env):
         self.observation_space = Box(
             low=0,
             high=255,
-            shape=(wrapped.camera_height, wrapped.camera_width, 6),
+            shape=(120, 160, 6),
             dtype=np.uint8
         )
 
