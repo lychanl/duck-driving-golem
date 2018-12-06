@@ -4,11 +4,14 @@ from gym import Env
 
 
 class EnvWithHistoryWrapper(Env):
-    def __init__(self, wrapped, history_range):
+    def __init__(self, wrapped, input_frames, frequency):
         super(EnvWithHistoryWrapper, self).__init__()
         self.wrapped = wrapped
-        self.history = [None for _ in history_range]
+        self.history = [None for _ in range(input_frames * frequency)]
         self.history_iter = 0
+
+        self.input_frames = input_frames
+        self.frequency = frequency
 
         self.action_space = wrapped.action_space
         self.observation_space = Box(
@@ -18,11 +21,20 @@ class EnvWithHistoryWrapper(Env):
             dtype=np.uint8
         )
 
+    @property
+    def unwrapped(self):
+        return self.wrapped.unwrapped
+
     def step(self, action):
         obs, reward, done, info = self.wrapped.step(action)
 
-        historic_obs = self.history[self.history_iter]
-        obs_with_history = np.concatenate((obs, historic_obs), axis=2)
+        frames = []
+        for i in range(self.input_frames):
+            frames.append(self.history[(self.history_iter + i * self.frequency) % len(self.history)])
+
+        frames.append(obs)
+
+        obs_with_history = np.concatenate(frames, axis=2)
 
         self.history[self.history_iter] = obs
         self.history_iter = (self.history_iter + 1) % len(self.history)
@@ -45,3 +57,17 @@ class EnvWithHistoryWrapper(Env):
 
     def seed(self, seed=None):
         return self.wrapped.seed(seed)
+
+
+class VecEnvWithHistoryFactory:
+    """
+    A factory to use as environment-creating function in vectorized environments
+    """
+    def __init__(self, wrapped_fun, input_frames, frequency):
+        self.wrapped_fun = wrapped_fun
+        self.input_frames = input_frames
+        self.frequency = frequency
+
+    def __call__(self, *args, **kwargs):
+        wrapped = self.wrapped_fun(*args, **kwargs)
+        return EnvWithHistoryWrapper(wrapped, self.input_frames, self.frequency)
