@@ -11,16 +11,14 @@ import operator
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class DQN(nn.Module):
-    def __init__(self,state_dim):
+    def __init__(self):
         super(DQN, self).__init__()
 
-        #state_dim = functools.reduce(operator.mul, state_dim, 1)
-
-        self.relu = nn.LeakyReLU()
+        self.relu = nn.ReLU()
         self.dropout=nn.Dropout(0.5)
         
         #input channels = 6, output = 48, sizeOut 160x120
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=48, kernel_size=4, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=6, out_channels=48, kernel_size=4, stride=1, padding=1)
         self.bnorm1=nn.BatchNorm2d(48)
         
         #input channels = 48, output = 96, sizeOut 156x116
@@ -80,25 +78,23 @@ class DQN(nn.Module):
         torch.save(self.state_dict(), '{}/{}_dqn.pth'.format(directory, filename))
 
     def load(self, filename, directory):
-        self.load_state_dict(torch.load('{}/{}_dqn.pth'.format(directory, filename), map_location=device))
-
-
-Transition = namedtuple('Transition','state, action, next_state, reward')    
+        self.load_state_dict(torch.load('{}/{}_dqn.pth'.format(directory, filename), map_location=device))    
 
 class ReplayMemory(object):
     def __init__(self, capacity):
         self.capacity = capacity
         self.memory = []
         self.position = 0
+        self.Transition = namedtuple('Transition',('state', 'action', 'next_state', 'reward'))
     
     def push(self, *args):
         if len(self.memory) < self.capacity:
             self.memory.append(None)
-        self.memory[self.position] = Transition(*args)
+        self.memory[self.position] = self.Transition(*args)
         self.position = (self.position + 1) % self.capacity
         
     def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
+        return self.Transition(*(zip(*random.sample(self.memory, batch_size))))
 
     def __len__(self):
         return len(self.memory)
