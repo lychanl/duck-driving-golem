@@ -1,0 +1,6 @@
+-r gym-duckietown/requirements.txt
+
+-e git://github.com/openai/baselines.git#egg=baselines
+easygui
+pypng
+tensorflow
