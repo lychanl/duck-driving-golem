@@ -73,6 +73,31 @@ class ActionWrapper(gym.ActionWrapper):
         return action_
 
 
+class DeltasToActionsWrapper(gym.ActionWrapper):
+    """
+    Converts policy that was trained with [+velocity_delta|-velocity_delta|+omega delta|-omega_delta|stay]
+    actions to [velocity|heading] casue reasons
+    """
+
+    def __init__(self, env, delta_vel=0.05, delta_omega=0.05):
+        super(DeltasToActionsWrapper, self).__init__(env)
+        self.action = [0.1, 0]
+        self.delta_vel = delta_vel
+        self.delta_omega=delta_omega
+    
+    def action(self, agent_action):
+        
+        if agent_action[0] == 1:
+            self.action = [self.action[0] + self.delta_vel, self.action[1]]
+        elif agent_action[1] == 1:
+            self.action = [self.action[0] - self.delta_vel, self.action[1]]
+        elif agent_action[2] == 1:
+            self.action = [self.action[0], self.action[1] + self.delta_omega]
+        elif agent_action[3] == 1:
+            self.action = [self.action[0],self.action[1]-self.delta_omega]
+        
+        return self.action
+
 class SteeringToWheelVelWrapper(gym.ActionWrapper):
     """
     Converts policy that was trained with [velocity|heading] actions to
