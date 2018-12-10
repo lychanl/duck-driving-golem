@@ -7,12 +7,11 @@ import torch.optim as op
 import torch.functional as F
 import torchvision.transforms as T
 from PIL import Image
-
 import numpy as np
-
 import matplotlib as mp
 import matplotlib.pyplot as plt
 import gym
+
 import gym_duckietown
 import model
 from duckietown_rl import args
