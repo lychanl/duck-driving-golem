@@ -12,19 +12,12 @@ import numpy as np
 
 import matplotlib as mp
 import matplotlib.pyplot as plt
-
-from itertools import count
-
-import model
-import args
-
 import gym
-
-sys.path.append('/home/mateusz/Documents/AI_Driving_Olympics/duck-driving-golem/gym_duckietown')
 import gym_duckietown
-
+import model
+from duckietown_rl import args
 from duckietown_rl.wrappers import ActionWrapper, ResizeWrapper, DeltasToActionsWrapper
-
+from duckietown_rl.utils import choose_action
 from duckietown_rl.env import launch_env
 sys.path.append('/home/mateusz/Documents/AI_Driving_Olympics/duck-driving-golem/src')
 from env_with_history import EnvWithHistoryWrapper
@@ -55,8 +48,11 @@ env = launch_env()
 #wrappers
 env = ResizeWrapper(env)
 env = EnvWithHistoryWrapper(env, 2, 5)
-env= DeltasToActionsWrapper(env, delta_vel=args.VELOCITY_DELTA, delta_omega= args.ANGLE_DELTA)
+print(env.action_space.shape)
+env = DeltasToActionsWrapper(env, delta_vel=args.VELOCITY_DELTA, delta_omega=args.ANGLE_DELTA)
+print(env.action_space.shape)
 env = ActionWrapper(env)
+print(env.action_space.shape)
 
 #initialaziing nets
 policy_net = model.DQN().to(device)
@@ -68,7 +64,7 @@ memory = model.ReplayMemory(args.MEMORY_SIZE)
 
 totensor = T.ToTensor()
 
-steps_done=0
+
 done = False
 episode_durations=[]
 
@@ -94,20 +90,12 @@ def plot_durations():
 
 #training loop
 for episode in range(args.NUM_EPISODES):
+    steps_done=0
     obs = totensor(env.reset()).unsqueeze(0).to(device)
     while not done:
         steps_done += 1
         print('\n \n Step: ', steps_done)
-        sample = random.random()
-        print('Sampling action...')
-        if sample > epsThreshold(steps_done):
-            print('Network action')
-            with torch.no_grad():
-                action = policy_net(obs).flatten() #implement one hot encoding duh
-        else:
-            print('Random action')
-            action = env.action_space.sample() #change ranom action to match new format!!!
-        
+        action=choose_action(steps_done,policy_net, obs)
         print('Action: ', action, 'Type: ', type(action))
         print('Performing action...')
         next_obs, reward, done, _ = env.step(action)
@@ -159,7 +147,7 @@ for episode in range(args.NUM_EPISODES):
         if steps_done % args.TARGET_UPDATE == 0:
             frozen_net.load_state_dict(policy_net.state_dict())
 
-    episode_durations.append(t + 1)
+    episode_durations.append(steps_done + 1)
     plot_durations()
 
 print('Complete')
