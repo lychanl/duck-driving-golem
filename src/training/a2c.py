@@ -37,7 +37,7 @@ def test(env, load_path, img_path, display_steps=500):
 
 
 def main():
-    env_creator = get_env_creator_from_args(discrete=True)
+    env_creator = get_env_creator_from_args()
 
     model_file = sys.argv[1]
 
