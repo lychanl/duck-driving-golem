@@ -23,7 +23,7 @@ import gym
 sys.path.append('/home/mateusz/Documents/AI_Driving_Olympics/duck-driving-golem/gym_duckietown')
 import gym_duckietown
 
-from duckietown_rl.wrappers import ActionWrapper, ResizeWrapper
+from duckietown_rl.wrappers import ActionWrapper, ResizeWrapper, DeltasToActionsWrapper
 
 from duckietown_rl.env import launch_env
 sys.path.append('/home/mateusz/Documents/AI_Driving_Olympics/duck-driving-golem/src')
@@ -42,6 +42,7 @@ def epsThreshold(steps_done):
 #----------------------------
 
 random.seed(123)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #parameters folder
@@ -53,7 +54,8 @@ env = launch_env()
 
 #wrappers
 env = ResizeWrapper(env)
-env = EnvWithHistoryWrapper(env, 1, 5)
+env = EnvWithHistoryWrapper(env, 2, 5)
+env= DeltasToActionsWrapper(env, delta_vel=args.VELOCITY_DELTA, delta_omega= args.ANGLE_DELTA)
 env = ActionWrapper(env)
 
 #initialaziing nets
@@ -66,7 +68,6 @@ memory = model.ReplayMemory(args.MEMORY_SIZE)
 
 totensor = T.ToTensor()
 
-steps_since_transfer=0 #steps for how much frozen net was frozen
 steps_done=0
 done = False
 episode_durations=[]
@@ -102,10 +103,10 @@ for episode in range(args.NUM_EPISODES):
         if sample > epsThreshold(steps_done):
             print('Network action')
             with torch.no_grad():
-                action = np.asarray(policy_net(obs)).flatten()
+                action = policy_net(obs).flatten() #implement one hot encoding duh
         else:
             print('Random action')
-            action = env.action_space.sample()
+            action = env.action_space.sample() #change ranom action to match new format!!!
         
         print('Action: ', action, 'Type: ', type(action))
         print('Performing action...')
@@ -123,20 +124,25 @@ for episode in range(args.NUM_EPISODES):
         if len(memory)>args.BATCH_SIZE:
             batch = memory.sample(args.BATCH_SIZE)
             print('\n Memory sampled')
-            non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=device, dtype=torch.float)
-            non_final_next_states = torch.cat([torch.tensor(s) for s in batch.next_state if s is not None])
-            state_batch = torch.cat(batch.state).to(device)
-            action_batch = torch.cat(batch.action).to(device)
-            reward_batch = torch.cat(batch.reward).to(device)
+
+            non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=device, dtype=torch.uint8)
+            non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+            state_batch = torch.cat(batch.state)#.to(device)
+            action_batch = torch.cat(batch.action)#.to(device)
+            reward_batch = torch.cat(batch.reward)#.to(device)
             print('Batch collected')
 
             # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
             # columns of actions taken
             state_action_values = policy_net(state_batch)
             
+            print('Q(s_t,a)')
+            print(state_action_values)
+            
             # Compute V(s_{t+1}) for all next states.
             next_state_values = torch.zeros(args.BATCH_SIZE, device=device)
             next_state_values[non_final_mask] = torch.t(frozen_net(non_final_next_states))
+            
             # Compute the expected Q values
             expected_state_action_values = (next_state_values * args.GAMMA) + reward_batch
 
