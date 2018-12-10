@@ -1,8 +1,12 @@
 import random
+import math
+
 
 import gym
 import numpy as np
 import torch
+
+from . import args
 
 
 def seed(seed):
@@ -72,3 +76,29 @@ def evaluate_policy(env, policy, eval_episodes=10, max_timesteps=500):
     avg_reward /= eval_episodes
 
     return avg_reward
+
+def choose_action(steps, network, obs):
+    threshold = args.EPS_END + (args.EPS_START - args.EPS_END) * \
+        math.exp(-1. * steps / args.EPS_DECAY)
+    sample = random.random()
+
+    if sample > threshold:
+        print('DQN Action :')
+        with torch.no_grad():
+            action = network(obs)
+    else:
+        action = np.random.random(5)
+        print('Random action :',action)
+    max = 0.0
+
+    for a in action:
+        if a > max:
+            max = a
+    
+    for i in range(5):
+        if action[i] < max:
+            action[i] = 0
+        else:
+            action[i] = 1
+
+    return action
