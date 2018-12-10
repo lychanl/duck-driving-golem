@@ -46,10 +46,10 @@ class DQN(nn.Module):
         self.fc1 = nn.Linear(16896, 1024)
         
         #second fully connected
-        self.fc2 = nn.Linear(1024, 32)
+        self.fc2 = nn.Linear(1024, 1024)
         
         #third fully connected
-        self.fc3=nn.Linear(32,2)
+        self.fc3=nn.Linear(1024,5)
         
     def forward(self, x):
 
