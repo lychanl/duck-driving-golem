@@ -9,18 +9,18 @@ from baselines.common.policies import build_policy
 
 from src.env import get_env_creator_from_args
 from src.show import show, save_images
-from src.models.a2c_cnn import a2c_discrete_cnn
+from src.models.a2c_cnn import a2c_cnn
 
 
 def train(env, save_path, nsteps=20, timesteps=1e3):
-    model = a2c.learn(a2c_discrete_cnn, env, nsteps=nsteps, total_timesteps=int(timesteps),
+    model = a2c.learn(a2c_cnn, env, nsteps=nsteps, total_timesteps=int(timesteps),
                       load_path=save_path if os.path.isfile(save_path) else None)
     model.save(save_path)
 
 
 def test(env, load_path, img_path, display_steps=500):
     with tf.Session() as sess:
-        policy = build_policy(env, a2c_discrete_cnn)
+        policy = build_policy(env, a2c_cnn)
         with tf.variable_scope('a2c_model', reuse=tf.AUTO_REUSE):
             model = policy(1, 1, sess)
 
