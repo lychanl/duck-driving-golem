@@ -75,15 +75,16 @@ class ActionWrapper(gym.ActionWrapper):
 
 class DeltasToActionsWrapper(gym.ActionWrapper):
     """
-    Converts policy that was trained with [+velocity_delta|-velocity_delta|+omega delta|-omega_delta|stay]
+    Converts policy that was trained with [+velocity_delta | -velocity_delta | +omega_delta | -omega_delta | stay]
     actions to [velocity|heading] casue reasons
     """
 
     def __init__(self, env, delta_vel=0.05, delta_omega=0.05):
         super(DeltasToActionsWrapper, self).__init__(env)
-        self.action = [0.1, 0]
+        self.action = [0.1, 0.]
         self.delta_vel = delta_vel
-        self.delta_omega=delta_omega
+        self.delta_omega = delta_omega
+        self.action_space=spaces.Box(low=0.0, high=1.0, shape=(5,), dtype=self.action_space.dtype)
     
     def action(self, agent_action):
         
