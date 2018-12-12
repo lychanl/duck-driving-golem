@@ -10,7 +10,7 @@ from src.env_with_history import VecEnvWithHistoryFactory
 def get_env_creator_from_args(discrete=False):
     parser = argparse.ArgumentParser()
     parser.add_argument('--env-name', default=None)
-    parser.add_argument('--map-name', default='udem1')
+    parser.add_argument('--map-name', default='loop_empty')
     parser.add_argument('--distortion', default=False, action='store_true')
     parser.add_argument('--draw-curve', action='store_true', help='draw the lane following curve')
     parser.add_argument('--draw-bbox', action='store_true', help='draw collision detection bounding boxes')
