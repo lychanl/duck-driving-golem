@@ -2,6 +2,8 @@ import numpy as np
 from gym.spaces import Box
 from gym import Env
 
+from gym import Wrapper
+
 
 class EnvWithHistoryWrapper(Env):
     def __init__(self, wrapped, input_frames, frequency):
@@ -14,10 +16,16 @@ class EnvWithHistoryWrapper(Env):
         self.frequency = frequency
 
         self.action_space = wrapped.action_space
+
+        shape = (
+                    wrapped.observation_space.shape[0],
+                    wrapped.observation_space.shape[1],
+                    wrapped.observation_space.shape[2] * input_frames)
+
         self.observation_space = Box(
             low=0,
             high=255,
-            shape=(wrapped.camera_height, wrapped.camera_width, 6),
+            shape=shape,
             dtype=np.uint8
         )
 
@@ -29,7 +37,7 @@ class EnvWithHistoryWrapper(Env):
         obs, reward, done, info = self.wrapped.step(action)
 
         frames = []
-        for i in range(self.input_frames):
+        for i in range(self.input_frames - 1):
             frames.append(self.history[(self.history_iter + i * self.frequency) % len(self.history)])
 
         frames.append(obs)
@@ -47,7 +55,7 @@ class EnvWithHistoryWrapper(Env):
         for i in range(len(self.history)):
             self.history[i] = obs
 
-        return np.concatenate((obs, obs), axis=2)
+        return np.concatenate([obs for _ in range(self.input_frames)], axis=2)
 
     def render(self, mode='human'):
         return self.wrapped.render(mode)

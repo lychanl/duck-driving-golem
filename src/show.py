@@ -1,54 +1,61 @@
-import argparse
+import os
 
-import gym
 import numpy as np
 import pyglet
+import png
 
-from gym_duckietown.envs import DuckietownEnv
-
-from src.env_with_history import EnvWithHistoryWrapper
-
+from src.env import create_env_from_args
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--env-name', default=None)
-    parser.add_argument('--map-name', default='udem1')
-    parser.add_argument('--distortion', default=False, action='store_true')
-    parser.add_argument('--draw-curve', action='store_true', help='draw the lane following curve')
-    parser.add_argument('--draw-bbox', action='store_true', help='draw collision detection bounding boxes')
-    parser.add_argument('--domain-rand', action='store_true', help='enable domain randomization')
-    parser.add_argument('--frame-skip', default=1, type=int, help='number of frames to skip')
-    args = parser.parse_args()
+def _save_image(img, path, name_prefix, step):
+    name = os.path.join(path, "{}_{}.png".format(name_prefix, step))
+    png.from_array(img, mode='RGB').save(name)
 
-    if args.env_name is None:
-        env = DuckietownEnv(
-            map_name = args.map_name,
-            draw_curve = args.draw_curve,
-            draw_bbox = args.draw_bbox,
-            domain_rand = args.domain_rand,
-            frame_skip = args.frame_skip,
-            distortion = args.distortion,
-        )
-    else:
-        env = gym.make(args.env_name)
 
-    env = EnvWithHistoryWrapper(env, 3, 10)
+def save_images(env, actor, nsteps, path, name_prefix):
+    obs = env.reset()
 
-    env.reset()
+    for step in range(nsteps):
+        img = env.render('rgb_array')
+        action = actor(obs)
+        obs, _, _, _ = env.step(action)
+        _save_image(img, path, name_prefix, step)
+
+
+def show(env, actor, nsteps):
+    step = 0
+
+    obs = env.reset()
+    done = False
+
     env.render()
 
     def update(dt):
         env.render('human')
-        env.step(np.array([0.1, 0.0], dtype=np.float32))
+
+        nonlocal obs, done
+
+        if not done:
+            action = actor(obs)
+            obs, _, done, _ = env.step(action)
+
+        if nsteps:
+            nonlocal step
+            step += 1
+
+            if step >= nsteps:
+                pyglet.clock.unschedule(update)
+                pyglet.app.exit()
 
     pyglet.clock.schedule_interval(update, 1.0 / env.unwrapped.frame_rate)
 
-    try:
-        # Enter main event loop
-        pyglet.app.run()
-    except:
-        pass
+    pyglet.app.run()
+
+
+def main():
+    env = create_env_from_args()
+
+    show(env, lambda _: np.array([0.1, -0.2], dtype=np.float32), None)
 
     env.close()
 
